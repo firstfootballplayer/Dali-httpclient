@@ -48,7 +48,7 @@ void HttpClient::onConnection(const TcpConnectionPtr& conn)
     setCloseConnection(false);
     appendToBuffer(&requestBuffer_);
     conn->send(&requestBuffer_);
-    Timer_ = loop_->runAfter(3.0, std::bind(&HttpClient::timeout, this));
+    Timer_ = loop_->runAfter(5.0, std::bind(&HttpClient::timeout, this));
 }
 
 void HttpClient::onMessage(const TcpConnectionPtr& conn, Buffer* buf, Timestamp time)
@@ -61,6 +61,7 @@ void HttpClient::onMessage(const TcpConnectionPtr& conn, Buffer* buf, Timestamp 
     }
     LOG_INFO << " recv " << postbody_;
     conn->forceClose();
+
     loop_->quit();
 }
 
@@ -116,7 +117,7 @@ void HttpClient::parseUrl(char* mUrl)
 int main(int argc, char* argv[])
 {
     EventLoop loop;
-    HttpClient clients(&loop, "http://192.168.252.183:6000/test/c", "cc");
+    HttpClient clients(&loop, "http://192.168.1.17:6000/test/c", "cc");
     // clients.parseUrl("http://127.0.0.1:63/test/c");
     clients.connect();
     loop.loop();

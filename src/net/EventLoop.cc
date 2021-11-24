@@ -107,7 +107,9 @@ void EventLoop::loop()
         }
         currentActiveChannel_ = NULL;
         eventHandling_ = false;
+        LOG_INFO << "entttttttttttttttttttttttttttttttt ";
         doPendingFunctors();
+        LOG_INFO << "chuccccccccccccccccccccccccccccccccc ";
     }
 
     LOG_TRACE << "EventLoop " << this << " stop looping";

@@ -70,6 +70,7 @@ TcpClient::~TcpClient()
         conn = connection_;
     }
     if(conn) {
+        LOG_INFO << "conncc";
         assert(loop_ == conn->getLoop());
         // FIXME: not 100% safe, if we are in different thread
         CloseCallback cb = std::bind(&detail::removeConnection, loop_, _1);
@@ -78,6 +79,7 @@ TcpClient::~TcpClient()
             conn->forceClose();
         }
     } else {
+        // LOG_INFO << "connccllllllllllll";
         connector_->stop();
         // FIXME: HACK
         loop_->runAfter(1, std::bind(&detail::removeConnector, connector_));
@@ -139,7 +141,6 @@ void TcpClient::removeConnection(const TcpConnectionPtr& conn)
 {
     loop_->assertInLoopThread();
     assert(loop_ == conn->getLoop());
-
     {
         MutexLockGuard lock(mutex_);
         assert(connection_ == conn);

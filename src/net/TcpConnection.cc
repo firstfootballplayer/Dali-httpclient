@@ -283,12 +283,13 @@ void TcpConnection::connectEstablished()
 
 void TcpConnection::connectDestroyed()
 {
+    LOG_INFO << "conndest";
     loop_->assertInLoopThread();
     if(state_ == kConnected) {
         setState(kDisconnected);
         channel_->disableAll();
 
-        connectionCallback_(shared_from_this());
+        // connectionCallback_(shared_from_this());
     }
     channel_->remove();
 }
