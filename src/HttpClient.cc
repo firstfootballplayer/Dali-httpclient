@@ -19,16 +19,23 @@ void HttpClient::timeout()
     // loop_->quit();
 }
 
-HttpClient::HttpClient(libmevent::net::EventLoop* loop, const libmevent::net::InetAddress& listenAddr, const std::string& id) : loop_(loop), client_(new TcpClient(loop, listenAddr, "")), thread_(std::bind(&HttpClient::processhttp, this))
+HttpClient::HttpClient(libmevent::net::EventLoop* loop, const libmevent::net::InetAddress& listenAddr, const std::string& id) : loop_(loop), mutex_(), cond_(mutex_), client_(new TcpClient(loop, listenAddr, "")), thread_(std::bind(&HttpClient::processhttp, this))
 {
     client_->setConnectionCallback(std::bind(&HttpClient::onConnection, this, _1));
     client_->setMessageCallback(std::bind(&HttpClient::onMessage, this, _1, _2, _3));
     // client_->enableRetry();
 }
 
-HttpClient::HttpClient(libmevent::net::EventLoop* loop) : loop_(loop), thread_(std::bind(&HttpClient::processhttp, this))
+HttpClient::HttpClient() : thread_(std::bind(&HttpClient::processhttp, this)), loop_(NULL), mutex_(), cond_(mutex_)
 {
-    client_.reset(new TcpClient(loop, ""));
+    thread_.start();
+    {
+        MutexLockGuard lock(mutex_);
+        while(loop_ == NULL) {
+            cond_.wait();
+        }
+    }
+    client_.reset(new TcpClient(loop_, ""));
     client_->setConnectionCallback(std::bind(&HttpClient::onConnection, this, _1));
     client_->setMessageCallback(std::bind(&HttpClient::onMessage, this, _1, _2, _3));
     // client_->enableRetry();
@@ -36,6 +43,14 @@ HttpClient::HttpClient(libmevent::net::EventLoop* loop) : loop_(loop), thread_(s
 
 void HttpClient::processhttp()
 {
+    EventLoop loop;
+    {
+        MutexLockGuard lock(mutex_);
+        loop_ = &loop;
+    }
+    cond_.notify();
+    loop.loop();
+    LOG_INFO << "t";
 }
 
 void HttpClient::setServerAddr(const libmevent::net::InetAddress& serverAddr)
@@ -55,7 +70,8 @@ void HttpClient::onConnection(const TcpConnectionPtr& conn)
     conn->send(&requestBuffer_);
     Timer_ = loop_->runAfter(5.0, std::bind(&HttpClient::timeout, this));
 }
-
+extern libmevent::MutexLock g_mutex;
+extern libmevent::Condition g_cond;
 void HttpClient::onMessage(const TcpConnectionPtr& conn, Buffer* buf, Timestamp time)
 {
     loop_->cancel(Timer_);
@@ -66,7 +82,10 @@ void HttpClient::onMessage(const TcpConnectionPtr& conn, Buffer* buf, Timestamp 
     }
     LOG_INFO << " recv " << postbody_;
     conn->forceClose();
-    // loop_->quit();
+    {
+        MutexLockGuard lock(g_mutex);
+    }
+    g_cond.notify();
 }
 
 void HttpClient::appendToBuffer(Buffer* output) const

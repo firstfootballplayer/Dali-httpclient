@@ -66,14 +66,21 @@ CurlHttp::~CurlHttp(void)
  *  返回值：
  *		0表示成功 非0表示错误代码
  */
-static libmevent::net::EventLoop loop;
-static HttpClient g_client(&loop);
+// libmevent::net::EventLoop g_loop;
+HttpClient g_client;
+libmevent::MutexLock g_mutex;
+libmevent::Condition g_cond(g_mutex) GUARDED_BY(g_mutex);
 std::string CurlHttp::Request(std::string strUrl, std::string strParam, std::string strRequestType /* ="post" */, std::string strHeader /* ="" */, std::string strCookie /* ="" */, std::string strCaPath /* ="" */, int nTimeOut /* =0 */)
 {
     g_client.parseUrl(strUrl.c_str());
     g_client.setBody(strParam.c_str());
     g_client.connect();
-    loop.loop();
+    {
+        libmevent::MutexLockGuard lock(g_mutex);
+        // while(loop_ == NULL) {
+        g_cond.wait();
+        // }
+    }
 }
 // std::string CurlHttp::Request(std::string strUrl, std::string strParam, std::string strRequestType /* ="post" */, std::string strHeader /* ="" */, std::string strCookie /* ="" */, std::string strCaPath /* ="" */, int nTimeOut /* =0 */)
 // {

@@ -37,9 +37,11 @@ int main(int argc, char* argv[])
     // g_logFile.reset(new ::LogFile(::basename("tt"), 200 * 100000));
     // ::Logger::setOutput(outputFunc);
     // ::Logger::setFlush(flushFunc);
-
+    ::Logger::setLogLevel(Logger::LogLevel::TRACE);
     // MysqlManager sqlManager;
     MyXml xmlManager;
+    CurlHttp::Request("http://192.168.1.17:6000/test/c", "ccpost_Xml");
     // CurlHttp::Request("http://192.168.1.17:6000/test/c", "ccpost_Xml");
-    CurlHttp::Request("http://192.168.252.183:6000/test/c", "ccpost_Xml");
+
+    // CurlHttp::Request("http://192.168.252.183:6000/test/c", "ccpost_Xml");
 }

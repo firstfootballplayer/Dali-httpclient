@@ -27,7 +27,7 @@ class HttpClient : libmevent::noncopyable
 public:
     HttpClient(libmevent::net::EventLoop* loop, const libmevent::net::InetAddress& listenAddr, const std::string& id);
 
-    HttpClient(libmevent::net::EventLoop* loop);
+    HttpClient();
 
     void setServerAddr(const libmevent::net::InetAddress& serverAddr);
 
@@ -82,6 +82,8 @@ private:
     std::string filepath_;
     std::string postbody_;
     libmevent::Thread thread_;
+    libmevent::MutexLock mutex_;
+    libmevent::Condition cond_ GUARDED_BY(mutex_);
 };
 
 #endif  // libmevent_NET_CALLBACKS_H
