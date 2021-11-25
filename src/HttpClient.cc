@@ -1,6 +1,5 @@
 #include "libmevent/net/TcpClient.h"
 #include "libmevent/base/Logging.h"
-#include "libmevent/base/Thread.h"
 #include "libmevent/net/EventLoop.h"
 #include "libmevent/net/InetAddress.h"
 #include "libmevent/net/HttpClient.h"
@@ -16,31 +15,37 @@ class HttpClient;
 void HttpClient::timeout()
 {
     LOG_WARN << "http request timeout";
-    loop_->quit();
+    client_->forceClose();
+    // loop_->quit();
 }
 
-HttpClient::HttpClient(libmevent::net::EventLoop* loop, const libmevent::net::InetAddress& listenAddr, const std::string& id) : loop_(loop), client_(new TcpClient(loop, listenAddr, ""))
+HttpClient::HttpClient(libmevent::net::EventLoop* loop, const libmevent::net::InetAddress& listenAddr, const std::string& id) : loop_(loop), client_(new TcpClient(loop, listenAddr, "")), thread_(std::bind(&HttpClient::processhttp, this))
 {
     client_->setConnectionCallback(std::bind(&HttpClient::onConnection, this, _1));
     client_->setMessageCallback(std::bind(&HttpClient::onMessage, this, _1, _2, _3));
     // client_->enableRetry();
 }
 
-HttpClient::HttpClient(libmevent::net::EventLoop* loop, char* url, char* strParam) : loop_(loop)
+HttpClient::HttpClient(libmevent::net::EventLoop* loop) : loop_(loop), thread_(std::bind(&HttpClient::processhttp, this))
 {
-    parseUrl(url);
-    setBody(strParam);
-    InetAddress serverAddr(serverip_.c_str(), stoi(port_));
-    client_.reset(new TcpClient(loop, serverAddr, ""));
+    client_.reset(new TcpClient(loop, ""));
     client_->setConnectionCallback(std::bind(&HttpClient::onConnection, this, _1));
     client_->setMessageCallback(std::bind(&HttpClient::onMessage, this, _1, _2, _3));
     // client_->enableRetry();
+}
+
+void HttpClient::processhttp()
+{
+}
+
+void HttpClient::setServerAddr(const libmevent::net::InetAddress& serverAddr)
+{
+    client_->setServerAddr(serverAddr);
 }
 
 void HttpClient::onConnection(const TcpConnectionPtr& conn)
 {
     // LOG_TRACE << conn->localAddress().toIpPort() << " -> " << conn->peerAddress().toIpPort() << " is " << (conn->connected() ? "UP" : "DOWN");
-    LOG_INFO << "entry -------------------------";
     addHeader("Accept", "*/*");
     addHeader("Host", "zjm");
     addHeader("Cache-Control", "no-cache");
@@ -61,8 +66,7 @@ void HttpClient::onMessage(const TcpConnectionPtr& conn, Buffer* buf, Timestamp 
     }
     LOG_INFO << " recv " << postbody_;
     conn->forceClose();
-
-    loop_->quit();
+    // loop_->quit();
 }
 
 void HttpClient::appendToBuffer(Buffer* output) const
@@ -92,12 +96,16 @@ void HttpClient::appendToBuffer(Buffer* output) const
     output->append(body_);
 }
 
-void HttpClient::parseUrl(char* mUrl)
+void HttpClient::parseUrl(const char* mUrl)
 {
+    assert(mUrl != NULL);
     string::size_type n;
     string url = mUrl;
 
-    if(url.substr(0, 7) == "http://") url.erase(0, 7);
+    if(url.substr(0, 7) == "http://")
+        url.erase(0, 7);
+    else
+        LOG_FATAL << "http:// error";
 
     // if(url.substr(0, 8) == "https://") url.erase(0, 8);
 
@@ -105,21 +113,27 @@ void HttpClient::parseUrl(char* mUrl)
     if(n != string::npos) {
         serverip_ = url.substr(0, n);
         url.erase(0, n + 1);
-    }
+    } else
+        LOG_FATAL << "http ip port not found";
     n = url.find('/');
     if(n != string::npos) {
         port_ = url.substr(0, n);
         url.erase(0, n);
-    }
+    } else
+        LOG_FATAL << "http filepath not found";
+    libmevent::net::InetAddress serverAddr(serverip_.c_str(), stoi(port_));
+    setServerAddr(serverAddr);
     filepath_ = url;
 }
 
-int main(int argc, char* argv[])
-{
-    EventLoop loop;
-    HttpClient clients(&loop, "http://192.168.1.17:6000/test/c", "cc");
-    // clients.parseUrl("http://127.0.0.1:63/test/c");
-    clients.connect();
-    loop.loop();
-    LOG_INFO << " eddll ";
-}
+// int main(int argc, char* argv[])
+// {
+//     EventLoop loop;
+//     printf("hh");
+//     // HttpClient clients(&loop, "http://192.168.1.17:6000/test/c", "cc");
+//     HttpClient clients(&loop, "http://192.168.252.183:6000/test/c", "cc");
+//     // clients.parseUrl("http://127.0.0.1:63/test/c");
+//     clients.connect();
+//     loop.loop();
+//     LOG_INFO << " eddll ";
+// }

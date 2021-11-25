@@ -6,5 +6,5 @@ CXX_DEFINES =
 
 CXX_INCLUDES = -I/home/zjm/clientproj/include -I/home/zjm/clientproj/include/libmevent/base -I/home/zjm/clientproj/include/libmevent/net
 
-CXX_FLAGS = -std=c++11 -Wall -Wno-unused-but-set-variable -g
+CXX_FLAGS =  -O0 -std=c++11 -Wall -Wno-unused-but-set-variable -g
 

@@ -26,6 +26,11 @@ Connector::Connector(EventLoop* loop, const InetAddress& serverAddr) : loop_(loo
     LOG_DEBUG << "ctor[" << this << "]";
 }
 
+Connector::Connector(EventLoop* loop) : loop_(loop), connect_(false), state_(kDisconnected), retryDelayMs_(kInitRetryDelayMs)
+{
+    LOG_DEBUG << "ctor[" << this << "]";
+}
+
 Connector::~Connector()
 {
     LOG_DEBUG << "dtor[" << this << "]";

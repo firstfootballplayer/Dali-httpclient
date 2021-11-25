@@ -1,6 +1,7 @@
 #include <sys/stat.h>
 #include "myHttpclient.h"
 #include "libmevent/base/Logging.h"
+#include "libmevent/net/HttpClient.h"
 #include <iostream>
 using namespace std;
 namespace _CURL_
@@ -65,81 +66,90 @@ CurlHttp::~CurlHttp(void)
  *  返回值：
  *		0表示成功 非0表示错误代码
  */
+static libmevent::net::EventLoop loop;
+static HttpClient g_client(&loop);
 std::string CurlHttp::Request(std::string strUrl, std::string strParam, std::string strRequestType /* ="post" */, std::string strHeader /* ="" */, std::string strCookie /* ="" */, std::string strCaPath /* ="" */, int nTimeOut /* =0 */)
 {
-    std::string strReport;
-    CURL* curl;
-    curl = curl_easy_init();
-    curl_easy_setopt(curl, CURLOPT_URL, strUrl.c_str());
-
-    if(strRequestType.compare("post") == 0 || strRequestType.compare("POST") == 0) {
-        curl_easy_setopt(curl, CURLOPT_POST, 1);
-        curl_easy_setopt(curl, CURLOPT_POSTFIELDS, strParam.c_str());
-    } else {
-        curl_easy_setopt(curl, CURLOPT_POST, 0);  // get请求
-    }
-
-    //判断是否有证书
-    if(strCaPath.empty()) {
-        curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, false);
-        curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, false);
-    } else {
-        //缺省情况就是PEM，所以无需设置，另外支持DER
-        // curl_easy_setopt(curl,CURLOPT_SSLCERTTYPE,"PEM");
-        curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, true);
-        curl_easy_setopt(curl, CURLOPT_CAINFO, strCaPath.c_str());
-    }
-
-    std::string strReportHeader;  //回执回来的头数据
-    // curl_easy_setopt(curl, CURLOPT_VERBOSE, 1);		//可以看到调试信息
-    //接受服务器的ssl证书而不管合不合法 （相当于命令行中的--insecure）
-    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0);
-    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0);
-    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, _CURL_::write_data);
-    curl_easy_setopt(curl, CURLOPT_WRITEDATA, &strReport);
-    if(nTimeOut > 0) {
-        curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, nTimeOut);
-        curl_easy_setopt(curl, CURLOPT_TIMEOUT, nTimeOut);
-    }
-
-    if(!strHeader.empty()) {
-        curl_easy_setopt(curl, CURLOPT_HTTPHEADER, strHeader.c_str());
-    }
-
-    if(!strCookie.empty()) {
-        curl_easy_setopt(curl, CURLOPT_COOKIEFILE, strCookie.c_str());
-    }
-    CURLcode res = curl_easy_perform(curl);
-    if(res != CURLE_OK) {
-        switch(res) {
-        case CURLE_UNSUPPORTED_PROTOCOL:
-            LOG_WARN << "libcurl"
-                     << "不支持的协议,由URL的头部指定";
-            break;
-        case CURLE_COULDNT_CONNECT:
-            LOG_WARN << "libcurl"
-                     << "不支持的协议,由URL的头部指定";
-            break;
-        case CURLE_HTTP_RETURNED_ERROR:
-            LOG_WARN << "libcurl"
-                     << "http返回错误";
-            break;
-        case CURLE_READ_ERROR:
-            LOG_WARN << "libcurl"
-                     << "读本地文件错误";
-            break;
-        case CURLE_OPERATION_TIMEDOUT:
-            LOG_WARN << "libcurl"
-                     << "操作超时";
-            break;
-        default:
-            LOG_WARN << "libcurl error" << res;
-        }
-    }
-    curl_easy_cleanup(curl);
-    // cout << strReport << endl;
-    return strReport;
+    g_client.parseUrl(strUrl.c_str());
+    g_client.setBody(strParam.c_str());
+    g_client.connect();
+    loop.loop();
 }
+// std::string CurlHttp::Request(std::string strUrl, std::string strParam, std::string strRequestType /* ="post" */, std::string strHeader /* ="" */, std::string strCookie /* ="" */, std::string strCaPath /* ="" */, int nTimeOut /* =0 */)
+// {
+//     std::string strReport;
+//     CURL* curl;
+//     curl = curl_easy_init();
+//     curl_easy_setopt(curl, CURLOPT_URL, strUrl.c_str());
+
+//     if(strRequestType.compare("post") == 0 || strRequestType.compare("POST") == 0) {
+//         curl_easy_setopt(curl, CURLOPT_POST, 1);
+//         curl_easy_setopt(curl, CURLOPT_POSTFIELDS, strParam.c_str());
+//     } else {
+//         curl_easy_setopt(curl, CURLOPT_POST, 0);  // get请求
+//     }
+
+//     //判断是否有证书
+//     if(strCaPath.empty()) {
+//         curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, false);
+//         curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, false);
+//     } else {
+//         //缺省情况就是PEM，所以无需设置，另外支持DER
+//         // curl_easy_setopt(curl,CURLOPT_SSLCERTTYPE,"PEM");
+//         curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, true);
+//         curl_easy_setopt(curl, CURLOPT_CAINFO, strCaPath.c_str());
+//     }
+
+//     std::string strReportHeader;  //回执回来的头数据
+//     // curl_easy_setopt(curl, CURLOPT_VERBOSE, 1);		//可以看到调试信息
+//     //接受服务器的ssl证书而不管合不合法 （相当于命令行中的--insecure）
+//     curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0);
+//     curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0);
+//     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, _CURL_::write_data);
+//     curl_easy_setopt(curl, CURLOPT_WRITEDATA, &strReport);
+//     if(nTimeOut > 0) {
+//         curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, nTimeOut);
+//         curl_easy_setopt(curl, CURLOPT_TIMEOUT, nTimeOut);
+//     }
+
+//     if(!strHeader.empty()) {
+//         curl_easy_setopt(curl, CURLOPT_HTTPHEADER, strHeader.c_str());
+//     }
+
+//     if(!strCookie.empty()) {
+//         curl_easy_setopt(curl, CURLOPT_COOKIEFILE, strCookie.c_str());
+//     }
+//     CURLcode res = curl_easy_perform(curl);
+//     if(res != CURLE_OK) {
+//         switch(res) {
+//         case CURLE_UNSUPPORTED_PROTOCOL:
+//             LOG_WARN << "libcurl"
+//                      << "不支持的协议,由URL的头部指定";
+//             break;
+//         case CURLE_COULDNT_CONNECT:
+//             LOG_WARN << "libcurl"
+//                      << "不支持的协议,由URL的头部指定";
+//             break;
+//         case CURLE_HTTP_RETURNED_ERROR:
+//             LOG_WARN << "libcurl"
+//                      << "http返回错误";
+//             break;
+//         case CURLE_READ_ERROR:
+//             LOG_WARN << "libcurl"
+//                      << "读本地文件错误";
+//             break;
+//         case CURLE_OPERATION_TIMEDOUT:
+//             LOG_WARN << "libcurl"
+//                      << "操作超时";
+//             break;
+//         default:
+//             LOG_WARN << "libcurl error" << res;
+//         }
+//     }
+//     curl_easy_cleanup(curl);
+//     // cout << strReport << endl;
+//     return strReport;
+// }
 
 /*
  *	函数：

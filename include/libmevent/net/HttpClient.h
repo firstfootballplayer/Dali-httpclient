@@ -14,6 +14,7 @@
 #include "libmevent/net/TcpClient.h"
 #include "libmevent/base/Logging.h"
 #include "libmevent/net/EventLoop.h"
+#include "libmevent/base/Thread.h"
 #include <map>
 #include <memory>
 #include <string>
@@ -26,14 +27,22 @@ class HttpClient : libmevent::noncopyable
 public:
     HttpClient(libmevent::net::EventLoop* loop, const libmevent::net::InetAddress& listenAddr, const std::string& id);
 
-    HttpClient(libmevent::net::EventLoop* loop, char* url, char* strParam);
+    HttpClient(libmevent::net::EventLoop* loop);
+
+    void setServerAddr(const libmevent::net::InetAddress& serverAddr);
 
     void connect()
     {
         client_->connect();
     }
     // void stop();
-    void parseUrl(char* mUrl);
+    void parseUrl(const char* mUrl);
+    void setBody(const std::string& body)
+    {
+        body_ = body;
+    }
+
+    void processhttp();
 
 private:
     void onConnection(const libmevent::net::TcpConnectionPtr& conn);
@@ -58,11 +67,6 @@ private:
         headers_[key] = value;
     }
 
-    void setBody(const std::string& body)
-    {
-        body_ = body;
-    }
-
     void appendToBuffer(libmevent::net::Buffer* output) const;
 
     std::map<std::string, std::string> headers_;
@@ -77,6 +81,7 @@ private:
     std::string port_;
     std::string filepath_;
     std::string postbody_;
+    libmevent::Thread thread_;
 };
 
 #endif  // libmevent_NET_CALLBACKS_H

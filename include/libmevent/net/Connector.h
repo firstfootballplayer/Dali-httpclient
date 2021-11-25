@@ -31,7 +31,13 @@ namespace net
         typedef std::function<void(int sockfd)> NewConnectionCallback;
 
         Connector(EventLoop* loop, const InetAddress& serverAddr);
+        Connector(EventLoop* loop);
         ~Connector();
+
+        void setServerAddr(const InetAddress& serverAddr)
+        {
+            serverAddr_ = serverAddr;
+        }
 
         void setNewConnectionCallback(const NewConnectionCallback& cb)
         {

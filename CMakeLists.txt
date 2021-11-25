@@ -7,7 +7,7 @@ add_subdirectory(src/base)
 add_subdirectory(src/net)
 
 add_compile_options(-std=c++11 -Wall -Wno-unused-but-set-variable -g ) 
-
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O0")
 
 include_directories (include)
 include_directories (include/libmevent/base)

@@ -283,7 +283,6 @@ void TcpConnection::connectEstablished()
 
 void TcpConnection::connectDestroyed()
 {
-    LOG_INFO << "conndest";
     loop_->assertInLoopThread();
     if(state_ == kConnected) {
         setState(kDisconnected);

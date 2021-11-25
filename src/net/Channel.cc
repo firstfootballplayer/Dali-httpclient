@@ -27,10 +27,6 @@ Channel::Channel(EventLoop* loop, int fd__) : loop_(loop), fd_(fd__), events_(0)
 
 Channel::~Channel()
 {
-    // printf("-------------------start--------------------------------\n");
-    // printf("%s\n", libmevent::CurrentThread::stackTrace(true).c_str());
-    // printf("-------------------end--------------------------------\n");
-
     assert(!eventHandling_);
     assert(!addedToLoop_);
     if(loop_->isInLoopThread()) {
@@ -52,10 +48,6 @@ void Channel::update()
 
 void Channel::remove()
 {
-    printf("-------------------start--------------------------------\n");
-    printf("%s\n", libmevent::CurrentThread::stackTrace(true).c_str());
-    printf("-------------------end--------------------------------\n");
-
     assert(isNoneEvent());
     addedToLoop_ = false;
     loop_->removeChannel(this);

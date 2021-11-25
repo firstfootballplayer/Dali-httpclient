@@ -59,9 +59,19 @@ TcpClient::TcpClient(EventLoop* loop, const InetAddress& serverAddr, const strin
     // LOG_INFO << "TcpClient::TcpClient[" << name_ << "] - connector " << get_pointer(connector_);
 }
 
+TcpClient::TcpClient(EventLoop* loop, const string& nameArg) : loop_(CHECK_NOTNULL(loop)), connector_(new Connector(loop)), name_(nameArg), connectionCallback_(defaultConnectionCallback), messageCallback_(defaultMessageCallback), retry_(false), connect_(true), nextConnId_(1)
+{
+    connector_->setNewConnectionCallback(std::bind(&TcpClient::newConnection, this, _1));
+}
+
+void TcpClient::setServerAddr(const InetAddress& serverAddr)
+{
+    connector_->setServerAddr(serverAddr);
+}
+
 TcpClient::~TcpClient()
 {
-    LOG_INFO << "TcpClient::~TcpClient[" << name_ << "] - connector " << get_pointer(connector_);
+    // LOG_INFO << "TcpClient::~TcpClient[" << name_ << "] - connector " << get_pointer(connector_);
     TcpConnectionPtr conn;
     bool unique = false;
     {
@@ -70,7 +80,6 @@ TcpClient::~TcpClient()
         conn = connection_;
     }
     if(conn) {
-        LOG_INFO << "conncc";
         assert(loop_ == conn->getLoop());
         // FIXME: not 100% safe, if we are in different thread
         CloseCallback cb = std::bind(&detail::removeConnection, loop_, _1);
@@ -79,7 +88,6 @@ TcpClient::~TcpClient()
             conn->forceClose();
         }
     } else {
-        // LOG_INFO << "connccllllllllllll";
         connector_->stop();
         // FIXME: HACK
         loop_->runAfter(1, std::bind(&detail::removeConnector, connector_));
@@ -146,8 +154,8 @@ void TcpClient::removeConnection(const TcpConnectionPtr& conn)
         assert(connection_ == conn);
         connection_.reset();
     }
-
-    loop_->queueInLoop(std::bind(&TcpConnection::connectDestroyed, conn));
+    conn->connectDestroyed();
+    // loop_->queueInLoop(std::bind(&TcpConnection::connectDestroyed, conn));
     if(retry_ && connect_) {
         LOG_INFO << "TcpClient::connect[" << name_ << "] - Reconnecting to " << connector_->serverAddress().toIpPort();
         connector_->restart();

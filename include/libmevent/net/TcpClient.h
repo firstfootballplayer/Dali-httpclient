@@ -28,8 +28,10 @@ namespace net
         // TcpClient(EventLoop* loop);
         // TcpClient(EventLoop* loop, const string& host, uint16_t port);
         TcpClient(EventLoop* loop, const InetAddress& serverAddr, const string& nameArg);
-
+        TcpClient(EventLoop* loop, const string& nameArg);
         ~TcpClient();  // force out-line dtor, for std::unique_ptr members.
+
+        void setServerAddr(const InetAddress& serverAddr);
 
         void connect();
         void disconnect();
@@ -78,6 +80,11 @@ namespace net
         void setWriteCompleteCallback(WriteCompleteCallback cb)
         {
             writeCompleteCallback_ = std::move(cb);
+        }
+
+        void forceClose()
+        {
+            connection_->forceClose();
         }
 
     private:

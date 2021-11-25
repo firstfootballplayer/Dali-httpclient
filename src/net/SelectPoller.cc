@@ -27,8 +27,7 @@ SelectPoller::SelectPoller(EventLoop* loop) : Poller(loop)
     FD_ZERO(&o_writeset_);
     maxi_ = -1; /* index into client[] array */
     maxfd_ = -1;
-    for(int i = 0; i < FD_SETSIZE; i++)
-        client_[i] = -1;
+    for(int i = 0; i < FD_SETSIZE; i++) client_[i] = -1;
 }
 
 SelectPoller::~SelectPoller() = default;
@@ -59,8 +58,7 @@ void SelectPoller::fillActiveChannels(int numEvents, ChannelList* activeChannels
 {
     int sockfd;
     for(int i = 0; i <= maxi_; i++) {
-        if((sockfd = client_[i]) < 0)
-            continue;
+        if((sockfd = client_[i]) < 0) continue;
         ChannelMap::const_iterator ch = channels_.find(sockfd);
         assert(ch != channels_.end());
         Channel* channel = ch->second;
@@ -71,15 +69,13 @@ void SelectPoller::fillActiveChannels(int numEvents, ChannelList* activeChannels
             revents |= kReadEvent;
             channel->set_revents(revents);
             activeChannels->push_back(channel);
-            if(--numEvents <= 0)
-                break;
+            if(--numEvents <= 0) break;
         }
         if(FD_ISSET(sockfd, &w_writeset_)) {
             revents |= kWriteEvent;
             channel->set_revents(revents);
             activeChannels->push_back(channel);
-            if(--numEvents <= 0)
-                break;
+            if(--numEvents <= 0) break;
         }
     }
 }
@@ -102,10 +98,8 @@ void SelectPoller::updateChannel(Channel* channel)
         }
         channel->set_index(idx);
         channels_[client_[idx]] = channel;
-        if(channel->fd() > maxfd_)
-            maxfd_ = channel->fd(); /* for select */
-        if(idx > maxi_)
-            maxi_ = idx;
+        if(channel->fd() > maxfd_) maxfd_ = channel->fd(); /* for select */
+        if(idx > maxi_) maxi_ = idx;
         FD_SET(channel->fd(), &o_readset_);
     } else {
         // update existing one
@@ -154,10 +148,8 @@ void SelectPoller::removeChannel(Channel* channel)
     {
         int fd = 0;
         for(int i = 0; i < FD_SETSIZE; i++) {
-            if(client_[i] == -1 || client_[i] == maxfd_)
-                continue;
-            if(client_[i] > fd)
-                fd = client_[i];
+            if(client_[i] == -1 || client_[i] == maxfd_) continue;
+            if(client_[i] > fd) fd = client_[i];
         }
         maxfd_ = fd;
     }
