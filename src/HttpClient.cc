@@ -68,7 +68,7 @@ void HttpClient::onConnection(const TcpConnectionPtr& conn)
     setCloseConnection(false);
     appendToBuffer(&requestBuffer_);
     conn->send(&requestBuffer_);
-    Timer_ = loop_->runAfter(5.0, std::bind(&HttpClient::timeout, this));
+    Timer_ = loop_->runAfter(15.0, std::bind(&HttpClient::timeout, this));
 }
 extern libmevent::MutexLock g_mutex;
 extern libmevent::Condition g_cond;

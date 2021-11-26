@@ -45,8 +45,11 @@ void Connector::start()
 
 void Connector::startInLoop()
 {
+    printf("eeeeeeeeeeeeeeestartInLoopct\n");
     loop_->assertInLoopThread();
-    assert(state_ == kDisconnected);
+    printf("state=%d\n", state_);
+    // assert(state_ == kDisconnected);
+    printf("ccccccccccccccccccstartInLoopt\n");
     if(connect_) {
         connect();
     } else {
